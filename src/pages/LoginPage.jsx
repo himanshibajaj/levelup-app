@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
@@ -17,16 +19,35 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Mobile redirect result handle karo
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          toast.success("Welcome to LevelUp! 🚀");
+          navigate("/dashboard");
+        }
+      })
+      .catch((err) => console.log(err));
+  }, []);
+
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      toast.success("Welcome to LevelUp! 🚀");
-      navigate("/dashboard");
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        // Mobile pe redirect
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        // Desktop pe popup
+        await signInWithPopup(auth, googleProvider);
+        toast.success("Welcome to LevelUp! 🚀");
+        navigate("/dashboard");
+      }
     } catch (err) {
       toast.error("Login failed. Try again!");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleEmail = async (e) => {
@@ -50,20 +71,14 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#07070f] flex overflow-hidden
                     relative">
 
-      {/* === ANIMATED BACKGROUND BLOBS === */}
+      {/* BACKGROUND BLOBS */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Top left blob */}
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full
                         bg-purple-600/20 blur-3xl animate-pulse" />
-        {/* Top right blob */}
         <div className="absolute -top-20 right-0 w-80 h-80 rounded-full
-                        bg-pink-500/15 blur-3xl animate-pulse
-                        animation-delay-1000" />
-        {/* Bottom blob */}
+                        bg-pink-500/15 blur-3xl animate-pulse" />
         <div className="absolute bottom-0 left-1/2 w-96 h-96 rounded-full
-                        bg-blue-500/10 blur-3xl animate-pulse
-                        animation-delay-2000" />
-        {/* Grid pattern */}
+                        bg-blue-500/10 blur-3xl animate-pulse" />
         <div className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `linear-gradient(rgba(255,255,255,.5) 1px,
@@ -75,11 +90,9 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* === LEFT SIDE — Only on big screens === */}
+      {/* LEFT SIDE — Desktop only */}
       <div className="hidden lg:flex flex-1 flex-col justify-center
                       px-16 relative">
-
-        {/* Logo */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
@@ -94,8 +107,7 @@ export default function LoginPage() {
             <span className="text-white font-bold text-xl">LevelUp</span>
           </div>
 
-          <h1 className="text-5xl font-black text-white leading-tight
-                         mb-6">
+          <h1 className="text-5xl font-black text-white leading-tight mb-6">
             Your placement
             <span className="block bg-gradient-to-r from-purple-400
                              via-pink-400 to-blue-400 bg-clip-text
@@ -106,13 +118,10 @@ export default function LoginPage() {
 
           <p className="text-gray-400 text-lg mb-12 leading-relaxed">
             Turn boring placement prep into an
-            <span className="text-purple-400 font-medium">
-              {" "}addictive game.
-            </span>
+            <span className="text-purple-400 font-medium"> addictive game.</span>
             {" "}Earn XP, unlock levels, beat the leaderboard.
           </p>
 
-          {/* Stats Row */}
           <div className="flex gap-8 mb-12">
             {[
               { num: "2.4K+", label: "Students" },
@@ -120,9 +129,9 @@ export default function LoginPage() {
               { num: "340+", label: "Jobs Landed" },
             ].map((s) => (
               <div key={s.label}>
-                <div className="text-2xl font-black text-white mb-1
-                                bg-gradient-to-r from-purple-400 to-pink-400
-                                bg-clip-text text-transparent">
+                <div className="text-2xl font-black bg-gradient-to-r
+                                from-purple-400 to-pink-400 bg-clip-text
+                                text-transparent mb-1">
                   {s.num}
                 </div>
                 <div className="text-gray-500 text-sm">{s.label}</div>
@@ -130,19 +139,12 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Feature Pills */}
           <div className="flex flex-wrap gap-3">
-            {[
-              "🎮 XP & Levels",
-              "🔥 Daily Streaks",
-              "🏆 Leaderboard",
-              "🧠 AI Mock Interviews",
-              "📄 Resume Scorer",
-            ].map((f) => (
+            {["🎮 XP & Levels", "🔥 Daily Streaks", "🏆 Leaderboard",
+              "🧠 AI Mock Interviews", "📄 Resume Scorer"].map((f) => (
               <span key={f}
                 className="px-4 py-2 rounded-full text-sm font-medium
-                           bg-white/5 border border-white/10
-                           text-gray-300">
+                           bg-white/5 border border-white/10 text-gray-300">
                 {f}
               </span>
             ))}
@@ -150,7 +152,7 @@ export default function LoginPage() {
         </motion.div>
       </div>
 
-      {/* === RIGHT SIDE — Login Form === */}
+      {/* RIGHT SIDE — Login Form */}
       <div className="flex-1 flex items-center justify-center
                       px-6 lg:px-16 relative">
         <motion.div
@@ -159,7 +161,7 @@ export default function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Mobile Logo — only on small screens */}
+          {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="w-14 h-14 rounded-2xl mx-auto mb-3
                             flex items-center justify-center
@@ -224,32 +226,31 @@ export default function LoginPage() {
               className="w-full bg-white text-gray-800 rounded-2xl py-3.5
                          font-semibold text-sm flex items-center
                          justify-center gap-3 hover:bg-gray-50
-                         transition-all duration-200 mb-4
-                         shadow-lg hover:shadow-xl
-                         hover:-translate-y-0.5 active:translate-y-0
-                         disabled:opacity-50"
+                         transition-all duration-200 mb-4 shadow-lg
+                         hover:shadow-xl hover:-translate-y-0.5
+                         active:translate-y-0 disabled:opacity-50"
             >
-              <img
-                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                className="w-5 h-5"
-                alt="Google"
-              />
-              Continue with Google
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-gray-400
+                                border-t-gray-800 rounded-full animate-spin" />
+              ) : (
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  className="w-5 h-5" alt="Google"
+                />
+              )}
+              {loading ? "Redirecting..." : "Continue with Google"}
             </button>
 
             {/* Divider */}
             <div className="flex items-center gap-3 my-5">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-gray-600 text-xs font-medium">
-                OR
-              </span>
+              <span className="text-gray-600 text-xs font-medium">OR</span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
             {/* Form */}
             <form onSubmit={handleEmail} className="space-y-3">
-
-              {/* Name field — only on signup */}
               {!isLogin && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -263,8 +264,7 @@ export default function LoginPage() {
                     className="w-full bg-white/5 border border-white/10
                                rounded-2xl px-4 py-3.5 text-white text-sm
                                placeholder-gray-600 focus:outline-none
-                               focus:border-purple-500/60
-                               focus:bg-white/8 transition"
+                               focus:border-purple-500/60 transition"
                     required
                   />
                 </motion.div>
@@ -278,8 +278,7 @@ export default function LoginPage() {
                 className="w-full bg-white/5 border border-white/10
                            rounded-2xl px-4 py-3.5 text-white text-sm
                            placeholder-gray-600 focus:outline-none
-                           focus:border-purple-500/60
-                           focus:bg-white/8 transition"
+                           focus:border-purple-500/60 transition"
                 required
               />
 
@@ -291,12 +290,10 @@ export default function LoginPage() {
                 className="w-full bg-white/5 border border-white/10
                            rounded-2xl px-4 py-3.5 text-white text-sm
                            placeholder-gray-600 focus:outline-none
-                           focus:border-purple-500/60
-                           focus:bg-white/8 transition"
+                           focus:border-purple-500/60 transition"
                 required
               />
 
-              {/* Gradient Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
@@ -310,28 +307,19 @@ export default function LoginPage() {
               >
                 {loading
                   ? "Loading..."
-                  : isLogin
-                  ? "Login & Level Up →"
-                  : "Create Account →"}
+                  : isLogin ? "Login & Level Up →" : "Create Account →"}
               </button>
             </form>
 
-            {/* Trust badges */}
+            {/* Trust Badges */}
             <div className="flex items-center justify-center gap-4
                             mt-6 pt-6 border-t border-white/5">
-              <span className="text-gray-600 text-xs flex items-center gap-1">
-                🔒 Secure login
-              </span>
-              <span className="text-gray-600 text-xs flex items-center gap-1">
-                ⚡ Free forever
-              </span>
-              <span className="text-gray-600 text-xs flex items-center gap-1">
-                🎓 For students
-              </span>
+              <span className="text-gray-600 text-xs">🔒 Secure</span>
+              <span className="text-gray-600 text-xs">⚡ Free forever</span>
+              <span className="text-gray-600 text-xs">🎓 For students</span>
             </div>
           </div>
 
-          {/* Bottom text */}
           <p className="text-center text-gray-600 text-xs mt-4">
             By continuing, you agree to our Terms & Privacy Policy
           </p>
